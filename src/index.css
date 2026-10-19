@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Lato:wght@400;700&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Merriweather:wght@400;700&family=Oswald:wght@400;700&family=Raleway:wght@400;700&family=Poppins:wght@400;700&family=Ubuntu:wght@400;700&family=Lora:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-inter: "Inter", sans-serif;
+  --font-roboto: "Roboto", sans-serif;
+  --font-opensans: "Open Sans", sans-serif;
+  --font-lato: "Lato", sans-serif;
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-playfair: "Playfair Display", serif;
+  --font-merriweather: "Merriweather", serif;
+  --font-oswald: "Oswald", sans-serif;
+  --font-raleway: "Raleway", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+  --font-ubuntu: "Ubuntu", sans-serif;
+  --font-lora: "Lora", serif;
+
+  --color-bd-green: #006747;
+  --color-bd-red: #f42a41;
+  --color-bd-green-light: #00815a;
+  --color-bd-red-light: #f65567;
+
+  --color-indigo-50: #fffbeb;
+  --color-indigo-105: #fef08a;
+  --color-indigo-100: #fef3c7;
+  --color-indigo-200: #fde68a;
+  --color-indigo-350: #fbbf24;
+  --color-indigo-400: #f59e0b;
+  --color-indigo-500: #f97316;
+  --color-indigo-600: #ea580c;
+  --color-indigo-700: #dc2626;
+  --color-indigo-800: #b91c1c;
+  --color-indigo-900: #7f1d1d;
+}
+
+@layer base {
+  .dark {
+    background-color: #0c110f; /* Slightly greenish dark */
+    color: #f8fafc;
+  }
+  
+  .golden {
+    background-color: #004731; /* Flag green bg */
+    color: #ffffff;
+  }
+
+  .flag {
+    background-color: #004731;
+    color: #ffffff;
+  }
+
+  /* Global form stylings for themes */
+  .dark input:not([type="color"]), 
+  .dark select, 
+  .dark textarea {
+    @apply bg-[#1a2e26] border-[#224433] text-slate-200 placeholder-slate-500 focus:ring-[#006747] focus:border-[#006747];
+  }
+
+  .golden input:not([type="color"]), 
+  .golden select, 
+  .golden textarea,
+  .flag input:not([type="color"]), 
+  .flag select, 
+  .flag textarea {
+    @apply bg-[#005a3e] border-[#007a55] text-white placeholder-emerald-100/30 focus:ring-[#f42a41] focus:border-[#f42a41];
+  }
+
+  /* Label styling */
+  .dark label {
+    @apply text-emerald-600/60;
+  }
+  .golden label, .flag label {
+    @apply text-emerald-200;
+  }
+
+  /* Card styling overrides for themes */
+  .dark .bg-white {
+    @apply bg-[#14261f] border-[#1e3a2e];
+  }
+  .golden .bg-white, .flag .bg-white {
+    @apply bg-[#005a3e] border-[#007a55] text-white;
+  }
+
+  .dark .text-gray-900, .dark .text-gray-800, .dark .text-gray-700 {
+    @apply text-slate-100;
+  }
+  .dark .text-gray-600, .dark .text-gray-500 {
+    @apply text-emerald-600/70;
+  }
+
+  .golden .text-gray-900, .golden .text-gray-800, .golden .text-gray-700,
+  .flag .text-gray-900, .flag .text-gray-800, .flag .text-gray-700 {
+    @apply text-white;
+  }
+  .golden .text-gray-600, .golden .text-gray-500,
+  .flag .text-gray-600, .flag .text-gray-500 {
+    @apply text-emerald-200/80;
+  }
+
+  .dark .bg-gray-50, .dark .bg-gray-100, .dark .bg-slate-50, .dark .bg-slate-100 {
+    @apply bg-[#0a1a12];
+  }
+  .golden .bg-gray-50, .golden .bg-gray-100, .golden .bg-slate-50, .golden .bg-slate-100,
+  .flag .bg-gray-50, .flag .bg-gray-100, .flag .bg-slate-50, .flag .bg-slate-100 {
+    @apply bg-[#004d35];
+  }
+
+  /* CV Preview Isolation: Keeps CV paper white and text dark even in global Dark/Golden modes */
+  .cv-paper {
+    background-color: #ffffff !important;
+    color: #111827 !important; /* Force text-gray-900 */
+    --tw-text-opacity: 1 !important;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+  }
+
+  /* Ensure standard element colors are restored inside the CV paper */
+  .cv-paper p, .cv-paper span, .cv-paper div, .cv-paper h1, .cv-paper h2, .cv-paper h3, .cv-paper h4, .cv-paper li {
+    color: inherit;
+  }
+
+  .dark .cv-paper .text-gray-900, .golden .cv-paper .text-gray-900, .flag .cv-paper .text-gray-900 { color: #111827 !important; }
+  .dark .cv-paper .text-gray-800, .golden .cv-paper .text-gray-800, .flag .cv-paper .text-gray-800 { color: #1f2937 !important; }
+  .dark .cv-paper .text-gray-700, .golden .cv-paper .text-gray-700, .flag .cv-paper .text-gray-700 { color: #374151 !important; }
+  .dark .cv-paper .text-gray-600, .golden .cv-paper .text-gray-600, .flag .cv-paper .text-gray-600 { color: #4b5563 !important; }
+  .dark .cv-paper .text-gray-500, .golden .cv-paper .text-gray-500, .flag .cv-paper .text-gray-500 { color: #6b7280 !important; }
+  .dark .cv-paper .bg-white, .golden .cv-paper .bg-white, .flag .cv-paper .bg-white { background-color: #ffffff !important; }
+  .dark .cv-paper .bg-gray-50, .golden .cv-paper .bg-gray-50, .flag .cv-paper .bg-gray-50 { background-color: #f9fafb !important; }
+  .dark .cv-paper .bg-gray-100, .golden .cv-paper .bg-gray-100, .flag .cv-paper .bg-gray-100 { background-color: #f3f4f6 !important; }
+  .dark .cv-paper, .golden .cv-paper, .flag .cv-paper { background-color: #ffffff !important; color: #111827 !important; }
+  /* Modern UI Utilities */
+  .standard-card {
+    @apply bg-white border border-slate-200 rounded-3xl shadow-sm transition-all duration-300;
+  }
+  .standard-card:hover {
+    @apply shadow-md -translate-y-1;
+  }
+  .standard-btn {
+    @apply px-6 py-3 rounded-2xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2;
+  }
+  
+  .dark .standard-card {
+    @apply bg-slate-900 border-slate-800;
+  }
+  .dark .standard-btn {
+    @apply bg-indigo-600 text-white hover:bg-indigo-700;
+  }
+
+  .golden .standard-card, .flag .standard-card {
+    @apply bg-[#005a3e] border-emerald-900/30 text-white;
+  }
+  .golden .standard-btn, .flag .standard-btn {
+    @apply bg-bd-red text-white hover:bg-bd-red-light;
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300;
+  }
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 hover:bg-slate-700;
+  }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+}

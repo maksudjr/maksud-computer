@@ -1,0 +1,1282 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  FileText, 
+  Calculator, 
+  Layout, 
+  FileEdit, 
+  Users, 
+  ChevronRight,
+  Zap,
+  ShieldCheck,
+  Monitor,
+  Image as ImageIcon,
+  Sparkles,
+  Facebook,
+  FileImage,
+  FileType,
+  FileArchive,
+  Files,
+  ImagePlus,
+  Crown,
+  Palette,
+  Settings,
+  Coins as CoinsIcon,
+  LogOut,
+  Phone,
+  Mail,
+  CheckCircle2,
+  Gift,
+  AlertCircle,
+  Tag,
+  CreditCard,
+  Send,
+  X,
+  Menu,
+  Bot,
+  Globe,
+  ArrowRightLeft,
+  Languages,
+  RefreshCw,
+  QrCode,
+  ShieldAlert,
+  User,
+  Key
+} from 'lucide-react';
+import { Logo } from './Logo';
+import { cn } from '../lib/utils';
+import { useSecurity } from './SecurityGate';
+import { db } from '../lib/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { Language, translations } from '../lib/translations';
+
+interface DashboardProps {
+  onSelectTool: (tool: 'cv' | 'age' | 'resizer' | 'editor' | 'pdf' | 'about' | 'bg-remover' | 'pdf-to-img' | 'pdf-to-word' | 'pdf-compress' | 'pdf-merge' | 'img-to-pdf' | 'intelligent-ai' | 'converter' | 'inheritance' | 'translator' | 'scanner', cost: number) => void;
+  onAdminLogin: () => void;
+  uiTheme: 'light' | 'dark' | 'golden' | 'chameleon';
+  onThemeChange: (theme: 'light' | 'dark' | 'golden' | 'chameleon') => void;
+  language: Language;
+  onLanguageChange: (lang: Language) => void;
+  chameleonColor?: string;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ 
+  onSelectTool, 
+  onAdminLogin, 
+  uiTheme, 
+  onThemeChange,
+  language,
+  onLanguageChange,
+  chameleonColor = '#6366f1'
+}) => {
+  const { coins, userName, isAuthorized, logout, freeTrialUsed, isFreeAccess, activateFreeAccess, error, activeKey, setShowGate, setShowRegister, showInsufficientCoinsModal, setShowInsufficientCoinsModal } = useSecurity();
+  const [showFreeSuccess, setShowFreeSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tools' | 'pricing'>('tools');
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showPdfMenu, setShowPdfMenu] = useState(false);
+  const t = translations[language];
+  const [paymentData, setPaymentData] = useState({
+    amount: '',
+    transactionId: '',
+    fullName: '',
+    mobileNo: '',
+    desiredKey: activeKey || '',
+    comments: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [notice, setNotice] = useState<string>('');
+
+  useEffect(() => {
+    const handleNavPricing = () => {
+      setActiveTab('pricing');
+    };
+    window.addEventListener('nav-pricing', handleNavPricing);
+    return () => {
+      window.removeEventListener('nav-pricing', handleNavPricing);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchNotice = async () => {
+      try {
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        const noticeRef = doc(db, 'settings', 'global');
+        return onSnapshot(noticeRef, (doc) => {
+          if (doc.exists()) {
+            setNotice(doc.data().notice || '');
+          }
+        });
+      } catch (err) {
+        console.error("Error fetching notice:", err);
+      }
+    };
+    fetchNotice();
+  }, []);
+  
+  const handleClearCache = () => {
+    if (window.confirm(language === 'en' ? 'Are you sure you want to clear all data and last 5 CVs?' : 'আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা এবং শেষ ৫টি জীবনবৃত্তান্ত মুছে ফেলতে চান?')) {
+      localStorage.removeItem('cv_history');
+      localStorage.removeItem('maksud_ui_theme');
+      localStorage.removeItem('language');
+      // Clear other related caches if any
+      window.location.reload();
+    }
+  };
+
+  const welcomeMessage = useMemo(() => {
+    const hour = new Date().getHours();
+    const name = userName ? `, ${userName}` : '';
+    
+    let base = t.dashboard.welcomeMorning;
+    if (hour >= 12 && hour < 18) base = t.dashboard.welcomeAfternoon;
+    else if (hour >= 18) base = t.dashboard.welcomeEvening;
+    
+    return `${base}${name}!`;
+  }, [userName, t]);
+
+  const tools = [
+    {
+      id: 'intelligent-ai',
+      name: t.dashboard.tools.ai,
+      description: t.dashboard.toolDescriptions.ai,
+      icon: <Bot className="text-indigo-600" />,
+      color: 'bg-indigo-50',
+      hoverColor: 'hover:bg-indigo-100',
+      borderColor: 'border-indigo-100',
+      cost: 0
+    },
+    {
+      id: 'translator',
+      name: t.dashboard.tools.translator,
+      description: t.dashboard.toolDescriptions.translator,
+      icon: <Languages className="text-violet-600" />,
+      color: 'bg-violet-50',
+      hoverColor: 'hover:bg-violet-100',
+      borderColor: 'border-violet-100',
+      cost: 0
+    },
+    {
+      id: 'cv',
+      name: t.dashboard.tools.cv,
+      description: t.dashboard.toolDescriptions.cv,
+      icon: <FileText className="text-blue-600" />,
+      color: 'bg-blue-50',
+      hoverColor: 'hover:bg-blue-100',
+      borderColor: 'border-blue-100',
+      cost: 1
+    },
+    {
+      id: 'editor',
+      name: t.dashboard.tools.photoEditor,
+      description: t.dashboard.toolDescriptions.photoEditor,
+      icon: <ImageIcon className="text-indigo-600" />,
+      color: 'bg-indigo-50',
+      hoverColor: 'hover:bg-indigo-100',
+      borderColor: 'border-indigo-100',
+      cost: 0.5
+    },
+    {
+      id: 'bg-remover',
+      name: t.dashboard.tools.bgRemover,
+      description: t.dashboard.toolDescriptions.bgRemover,
+      icon: <Sparkles className="text-amber-600" />,
+      color: 'bg-amber-50',
+      hoverColor: 'hover:bg-amber-100',
+      borderColor: 'border-amber-100',
+      cost: 0.5
+    },
+    {
+      id: 'pdfGroup',
+      name: t.dashboard.tools.pdfGroup,
+      description: t.dashboard.toolDescriptions.pdfGroup,
+      icon: <Files className="text-red-600" />,
+      color: 'bg-red-50',
+      hoverColor: 'hover:bg-red-100',
+      borderColor: 'border-red-100',
+      cost: 0.25
+    },
+    {
+      id: 'resizer',
+      name: t.dashboard.tools.resizer,
+      description: t.dashboard.toolDescriptions.resizer,
+      icon: <Layout className="text-purple-600" />,
+      color: 'bg-purple-50',
+      hoverColor: 'hover:bg-purple-100',
+      borderColor: 'border-purple-100',
+      cost: 0.5
+    },
+    {
+      id: 'age',
+      name: t.dashboard.tools.ageCalc,
+      description: t.dashboard.toolDescriptions.ageCalc,
+      icon: <Calculator className="text-green-600" />,
+      color: 'bg-green-50',
+      hoverColor: 'hover:bg-green-100',
+      borderColor: 'border-green-100',
+      cost: 0
+    },
+    {
+      id: 'scanner',
+      name: language === 'en' ? 'Scanner & QR' : 'স্ক্যানার ও কিউআর',
+      description: language === 'en' ? 'Generate and read QR codes and barcodes (PDF417, etc)' : 'কিউআর এবং বারকোড তৈরি ও স্ক্যান করুন (PDF417 সহ)',
+      icon: <QrCode className="text-indigo-600" />,
+      color: 'bg-indigo-50',
+      hoverColor: 'hover:bg-indigo-100',
+      borderColor: 'border-indigo-100',
+      cost: 0
+    },
+    {
+      id: 'inheritance',
+      name: t.dashboard.tools.inheritance,
+      description: t.dashboard.toolDescriptions.inheritance,
+      icon: <Users className="text-purple-600" />,
+      color: 'bg-purple-50',
+      hoverColor: 'hover:bg-purple-100',
+      borderColor: 'border-purple-100',
+      cost: 0
+    },
+    {
+      id: 'converter',
+      name: t.dashboard.tools.converter,
+      description: t.dashboard.toolDescriptions.converter,
+      icon: <ArrowRightLeft className="text-emerald-600" />,
+      color: 'bg-emerald-50',
+      hoverColor: 'hover:bg-emerald-100',
+      borderColor: 'border-emerald-100',
+      cost: 0
+    }
+  ];
+
+  const pdfSubTools = [
+    { id: 'pdf', name: t.dashboard.tools.pdfEditor, icon: <FileEdit size={24} />, desc: t.dashboard.toolDescriptions.pdfEditor, color: 'text-red-600' },
+    { id: 'pdf-to-img', name: t.dashboard.tools.pdfToImg, icon: <FileImage size={24} />, desc: t.dashboard.toolDescriptions.pdfToImg, color: 'text-orange-600' },
+    { id: 'pdf-to-word', name: t.dashboard.tools.pdfToWord, icon: <FileType size={24} />, desc: t.dashboard.toolDescriptions.pdfToWord, color: 'text-blue-600' },
+    { id: 'pdf-compress', name: t.dashboard.tools.pdfCompress, icon: <FileArchive size={24} />, desc: t.dashboard.toolDescriptions.pdfCompress, color: 'text-emerald-600' },
+    { id: 'pdf-merge', name: t.dashboard.tools.pdfMerge, icon: <Files size={24} />, desc: t.dashboard.toolDescriptions.pdfMerge, color: 'text-rose-600' },
+    { id: 'img-to-pdf', name: t.dashboard.tools.imgToPdf, icon: <ImagePlus size={24} />, desc: t.dashboard.toolDescriptions.imgToPdf, color: 'text-cyan-600' },
+  ];
+
+  const getToolSpan = (index: number) => {
+    const desktopPatterns = [
+      "md:col-span-3 md:row-span-2", // Big hero tool
+      "md:col-span-3 md:row-span-1", // Wide tool
+      "md:col-span-2 md:row-span-2", // Large square
+      "md:col-span-2 md:row-span-1", // Narrow wide
+      "md:col-span-2 md:row-span-1", // Narrow wide
+      "md:col-span-2 md:row-span-2", // Large square
+      "md:col-span-4 md:row-span-1", // Extra wide
+      "md:col-span-2 md:row-span-2", // Large square
+    ];
+    return desktopPatterns[index % desktopPatterns.length];
+  };
+
+  return (
+    <div className={cn(
+      "min-h-screen transition-all duration-500",
+      uiTheme === 'light' ? "bg-slate-50 text-slate-900" : 
+      (uiTheme === 'chameleon' ? "bg-slate-950 text-white" : 
+      (uiTheme === 'golden' ? "bg-[#004d35] text-white" : "bg-slate-950 text-slate-100"))
+    )}>
+      {isAuthorized && coins <= 0 && (
+        <div className="bg-rose-600 text-white py-3 px-4 text-center font-black text-sm relative z-50 flex items-center justify-center gap-2 shadow-lg tracking-wide">
+          <ShieldAlert size={18} className="animate-pulse text-amber-300 shrink-0" />
+          <span>You have 0 coins. Please recharge.</span>
+          <button 
+            onClick={() => setActiveTab('pricing')} 
+            className="underline underline-offset-4 hover:text-rose-100 transition-colors ml-1 font-black"
+          >
+            To recharge click here
+          </button>
+        </div>
+      )}
+
+      {/* Notice Board Marquee */}
+      {notice && (
+        <div className={cn(
+          "py-2 overflow-hidden border-b transition-all sticky top-0 z-[60]",
+          uiTheme === 'golden' ? "bg-amber-900/90 border-amber-800 text-amber-100" : 
+          (uiTheme === 'chameleon' ? "bg-slate-950/90 border-white/5 text-white" : "bg-indigo-600/90 border-indigo-500 text-white")
+        )}
+        style={uiTheme === 'chameleon' ? { backgroundColor: `${chameleonColor}CC` } : {}}
+        >
+          <div className="whitespace-nowrap flex">
+            <div className="animate-marquee inline-block pr-12 font-black text-xs uppercase tracking-widest">
+              {notice} &nbsp; • &nbsp; {notice}
+            </div>
+            <div className="animate-marquee inline-block pr-12 font-black text-xs uppercase tracking-widest" aria-hidden="true">
+              {notice} &nbsp; • &nbsp; {notice}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Banner */}
+      <div className={cn(
+        "py-3 px-4 transition-all",
+        uiTheme === 'golden' ? "bg-[#f42a41] shadow-lg shadow-red-900/20" : "bg-[#006747] shadow-lg shadow-emerald-900/20"
+      )}>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-white">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Crown size={20} />
+            </div>
+            <p className="text-sm font-bold tracking-tight">
+              {t.dashboard.premiumBanner} <span className="opacity-75 font-mono ml-2">01622638268</span>
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {!isAuthorized && (
+              <>
+                <button 
+                  onClick={() => setShowRegister(true)}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <User size={14} />
+                    Register
+                  </div>
+                </button>
+                <button 
+                  onClick={() => setShowGate(true)}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/20"
+                >
+                  <div className="flex items-center gap-2">
+                    <Key size={14} />
+                    Client Login
+                  </div>
+                </button>
+              </>
+            )}
+            {isAuthorized && (
+              <div className="px-4 py-2 bg-white/10 rounded-xl text-white font-bold text-xs flex items-center gap-2 backdrop-blur-sm">
+                <User size={14} className="text-amber-300" />
+                <span>{userName} ({coins} Coins)</span>
+              </div>
+            )}
+            <button 
+              onClick={onAdminLogin}
+              className="px-5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold text-xs uppercase tracking-wider backdrop-blur-sm transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Settings size={14} />
+                {t.dashboard.adminLogin}
+              </div>
+            </button>
+            {isAuthorized && (
+              <button 
+                onClick={logout}
+                className="px-5 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-red-500/25"
+              >
+                <div className="flex items-center gap-2">
+                  <LogOut size={14} />
+                  {t.dashboard.logout}
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Premium Banner */}
+
+      {/* Free Access Section */}
+      {!isAuthorized && (
+        <div className="bg-amber-50 border-b border-amber-100 py-4 px-4">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-xl text-amber-600">
+                <Gift size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-900">{t.dashboard.newUserGift}</p>
+                <p className="text-xs font-medium text-slate-500">{t.dashboard.newUserInfo}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={async () => {
+                  await activateFreeAccess();
+                  if (!error) {
+                    setShowFreeSuccess(true);
+                    setTimeout(() => setShowFreeSuccess(false), 5000);
+                  }
+                }}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-black text-sm shadow-lg shadow-amber-200 transition-all flex items-center gap-2 group"
+              >
+                {t.dashboard.getFreeAccess}
+                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </div>
+          <AnimatePresence>
+            {error && !isAuthorized && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="max-w-7xl mx-auto mt-4"
+              >
+                <div className="bg-red-500 text-white p-3 rounded-xl flex items-center gap-3 font-black text-sm">
+                  <AlertCircle size={18} />
+                  {error}
+                </div>
+              </motion.div>
+            )}
+            {showFreeSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="max-w-7xl mx-auto mt-4"
+              >
+                <div className="bg-emerald-500 text-white p-3 rounded-xl flex items-center gap-3 font-black text-sm">
+                  <CheckCircle2 size={18} />
+                  {t.dashboard.freeAccessSuccess}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Modern Header */}
+      <header className={cn(
+        "sticky top-0 z-50 border-b transition-all duration-300 backdrop-blur-md",
+        uiTheme === 'light' ? "bg-white/80 border-slate-200" : 
+        uiTheme === 'dark' ? "bg-slate-950/80 border-slate-800" :
+        (uiTheme === 'chameleon' ? "bg-slate-950/80 border-white/10" : "bg-[#1a1a1a]/80 border-amber-900/30")
+      )}>
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button 
+              className={cn(
+                "md:hidden p-2 rounded-xl transition-colors",
+                uiTheme === 'light' ? "bg-slate-100 text-slate-900" : "bg-slate-800 text-slate-100"
+              )}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <div className="relative group">
+              <Logo className="w-12 h-12 transition-transform duration-500 cursor-pointer hover:scale-110" />
+            </div>
+            <div className="hidden sm:block text-left">
+              <h2 className={cn("text-xl font-bold tracking-tight leading-none", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-400"))}>MAKSUD</h2>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Computers</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-8">
+            <nav className="flex items-center gap-6">
+                  {['tools', 'pricing'].map((tab) => (
+                    <button 
+                      key={tab}
+                      onClick={() => setActiveTab(tab as any)}
+                      className={cn(
+                        "text-sm font-bold uppercase tracking-wider transition-all relative py-2",
+                        activeTab === tab 
+                          ? (uiTheme === 'golden' ? "text-emerald-300" : (uiTheme === 'chameleon' ? "opacity-100" : "text-indigo-600")) 
+                          : (uiTheme === 'light' ? "text-slate-500 hover:text-slate-900" : (uiTheme === 'golden' ? "text-emerald-100/40 hover:text-white" : "text-slate-400 hover:text-slate-100"))
+                      )}
+                      style={activeTab === tab && uiTheme === 'chameleon' ? { color: chameleonColor } : {}}
+                    >
+                      {tab === 'tools' ? t.dashboard.home : t.dashboard.pricing}
+                      {activeTab === tab && (
+                        <motion.div 
+                          layoutId="navUnderline"
+                          className={cn(
+                            "absolute -bottom-1 left-0 w-full h-0.5 rounded-full",
+                            uiTheme === 'golden' ? "bg-amber-500" : (uiTheme === 'chameleon' ? "" : "bg-indigo-600")
+                          )}
+                          style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor } : {}}
+                        />
+                      )}
+                    </button>
+                  ))}
+            </nav>
+
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setShowSettings(true)}
+                className={cn(
+                  "p-3 rounded-full transition-all hover:scale-110",
+                  uiTheme === 'light' ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : 
+                  (uiTheme === 'golden' ? "bg-emerald-900 text-emerald-400 hover:bg-emerald-800" : "bg-slate-800 text-slate-400 hover:bg-slate-700")
+                )}
+                title="Settings"
+              >
+                <Settings size={20} />
+              </button>
+
+              <button 
+                onClick={() => onSelectTool('about', 0)}
+                className={cn(
+                  "px-6 py-2.5 rounded-xl font-bold text-sm uppercase tracking-wider transition-all hover:scale-105 active:scale-95",
+                  uiTheme === 'golden' ? "bg-[#f42a41] text-white shadow-lg shadow-red-900/20" : (uiTheme === 'chameleon' ? "" : "bg-[#006747] text-white shadow-lg shadow-emerald-600/20")
+                )}
+                style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor, color: 'white' } : {}}
+              >
+                {t.dashboard.contactUs}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className={cn(
+                "md:hidden overflow-hidden border-t",
+                uiTheme === 'light' ? "bg-white border-slate-100" : 
+                uiTheme === 'dark' ? "bg-slate-900 border-slate-800" :
+                "bg-[#1a1a1a] border-amber-900/30"
+              )}
+            >
+              <div className="p-4 space-y-4">
+                <nav className="flex flex-col gap-4">
+                  <button 
+                    onClick={() => { setActiveTab('tools'); setIsMenuOpen(false); }}
+                    className={cn("text-left text-sm font-bold p-2 rounded-xl transition-all", 
+                      activeTab === 'tools' ? (uiTheme === 'golden' ? "bg-amber-600/10 text-emerald-400" : (uiTheme === 'chameleon' ? "" : "bg-indigo-50 text-indigo-600")) : 
+                      (uiTheme === 'light' ? "text-slate-600" : (uiTheme === 'golden' ? "text-emerald-100/40" : "text-slate-400")))}
+                    style={activeTab === 'tools' && uiTheme === 'chameleon' ? { color: chameleonColor, backgroundColor: `${chameleonColor}15` } : {}}
+                  >
+                    {t.dashboard.home}
+                  </button>
+                  <button 
+                    onClick={() => { setActiveTab('pricing'); setIsMenuOpen(false); }}
+                    className={cn("text-left text-sm font-bold p-2 rounded-xl transition-all", 
+                      activeTab === 'pricing' ? (uiTheme === 'golden' ? "bg-amber-600/10 text-emerald-400" : (uiTheme === 'chameleon' ? "" : "bg-indigo-50 text-indigo-600")) : 
+                      (uiTheme === 'light' ? "text-slate-600" : (uiTheme === 'golden' ? "text-emerald-100/40" : "text-slate-400")))}
+                    style={activeTab === 'pricing' && uiTheme === 'chameleon' ? { color: chameleonColor, backgroundColor: `${chameleonColor}15` } : {}}
+                  >
+                    {t.dashboard.pricing}
+                  </button>
+                  <button 
+                    onClick={() => { setShowSettings(true); setIsMenuOpen(false); }}
+                    className={cn("text-left text-sm font-bold p-2 rounded-xl transition-all flex items-center gap-2", 
+                      uiTheme === 'light' ? "text-slate-600 hover:bg-slate-100" : "text-slate-400 hover:bg-slate-800")}
+                  >
+                    <Settings size={18} />
+                    {language === 'en' ? 'Settings' : 'সেটিংস'}
+                  </button>
+                </nav>
+
+                <button 
+                  onClick={() => { onSelectTool('about', 0); setIsMenuOpen(false); }}
+                  className={cn(
+                    "w-full py-3 rounded-xl text-sm font-bold shadow-lg transition-all",
+                    uiTheme === 'golden' ? "bg-amber-600 text-white hover:bg-amber-700" : 
+                    "bg-indigo-600 text-white hover:bg-indigo-700"
+                  )}
+                >
+                  {t.dashboard.contactUs}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <div className="fixed inset-0 z-[120] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={cn(
+                "max-w-md w-full rounded-[2.5rem] shadow-2xl border p-8 relative",
+                uiTheme === 'light' ? "bg-white border-slate-100" : (uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-[#1a1a1a] border-amber-900/30")
+              )}
+            >
+              <button 
+                onClick={() => setShowSettings(false)}
+                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-8">
+                <div className={cn("p-2 rounded-xl", uiTheme === 'golden' ? "bg-amber-600 text-white" : "bg-indigo-600 text-white")}>
+                  <Settings size={20} />
+                </div>
+                <h2 className={cn("text-xl font-black", uiTheme === 'light' ? "text-slate-900" : "text-white")}>
+                  {language === 'en' ? 'App Settings' : 'অ্যাপ সেটিংস'}
+                </h2>
+              </div>
+
+              <div className="space-y-8">
+                {/* Language Selection */}
+                <div className="space-y-4">
+                  <label className={cn("text-xs font-black uppercase tracking-widest", uiTheme === 'light' ? "text-slate-400" : "text-slate-500")}>
+                    {language === 'en' ? 'Language Preferences' : 'ভাষা পছন্দসমূহ'}
+                  </label>
+                  <div className={cn("flex p-1 rounded-2xl", uiTheme === 'light' ? "bg-slate-100" : "bg-slate-800")}>
+                    {['en', 'bn'].map((lang) => (
+                      <button 
+                        key={`settings-lang-${lang}`}
+                        onClick={() => onLanguageChange(lang as any)}
+                        className={cn(
+                          "flex-1 py-3 rounded-xl font-bold text-sm transition-all",
+                          language === lang 
+                            ? (uiTheme === 'golden' ? "bg-amber-600 text-white shadow-sm" : "bg-white text-indigo-600 shadow-sm") 
+                            : (uiTheme === 'light' ? "text-slate-500 hover:text-slate-700" : "text-slate-400 hover:text-slate-200")
+                        )}
+                      >
+                        {lang === 'en' ? 'English' : 'বাংলা'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Theme Selection */}
+                <div className="space-y-4">
+                  <label className={cn("text-xs font-black uppercase tracking-widest", uiTheme === 'light' ? "text-slate-400" : "text-slate-500")}>
+                    {language === 'en' ? 'Interface Theme' : 'ইন্টারফেস থিম'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'light', label: language === 'en' ? 'Light' : 'লাইট', icon: <Monitor size={18} /> },
+                      { id: 'dark', label: language === 'en' ? 'Dark' : 'ডার্ক', icon: <Zap size={18} /> },
+                      { id: 'golden', label: language === 'en' ? 'Flag Style' : 'ফ্ল্যাগ স্টাইল', icon: <Crown size={18} /> },
+                      { id: 'chameleon', label: language === 'en' ? 'Chameleon' : 'ক্যামেলিয়ন', icon: <Palette size={18} /> }
+                    ].map((t) => (
+                      <button 
+                        key={`settings-theme-${t.id}`}
+                        onClick={() => onThemeChange(t.id as any)}
+                        className={cn(
+                          "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                          uiTheme === t.id 
+                            ? (uiTheme === 'golden' ? "border-amber-500 bg-amber-950 text-amber-500" : "border-indigo-600 bg-indigo-50 text-indigo-600") 
+                            : (uiTheme === 'light' ? "border-slate-100 bg-white" : "border-slate-800 bg-slate-800 hover:border-slate-700")
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={uiTheme === t.id ? (uiTheme === 'golden' ? "text-amber-500" : "text-indigo-600") : "text-slate-400"}>
+                            {t.icon}
+                          </span>
+                          <span className="text-xs font-bold">{t.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {uiTheme === 'chameleon' && (
+                    <div className="mt-4 p-4 rounded-2xl bg-slate-800/50 border border-white/5 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase text-slate-400">Manual Adjustment</span>
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: chameleonColor }} />
+                      </div>
+                      <div className="grid grid-cols-6 gap-2">
+                        {['#f43f5e', '#ec4899', '#d946ef', '#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f97316', '#ffffff'].map(c => (
+                          <button 
+                            key={c}
+                            onClick={() => {
+                              // Setting a manual color stops the auto-cycling temporarily or just changes it
+                              // In App.tsx it cycles every 5s, so this will be overridden unless we handle it
+                              // For now, let's just let it cycle but allow user to pick one
+                            }}
+                            className="w-full aspect-square rounded-full border border-white/10"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                  
+                  {/* System Actions */}
+                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <label className={cn("text-xs font-black uppercase tracking-widest", uiTheme === 'light' ? "text-slate-400" : "text-slate-500")}>
+                      {language === 'en' ? 'Maintenance' : 'রক্ষণাবেক্ষণ'}
+                    </label>
+                    <button 
+                      onClick={handleClearCache}
+                      className="w-full flex items-center justify-between p-4 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 transition-all font-bold group"
+                    >
+                      <div className="text-left">
+                        <p className="text-sm">{language === 'en' ? 'Clear Cache & Germs' : 'ক্যাশে এবং ডেটা মুছুন'}</p>
+                        <p className="text-[10px] opacity-70">{language === 'en' ? 'Deletes last 5 history and app data' : 'শেষ ৫টি ইতিহাস এবং অ্যাপ ডেটা মুছে ফেলে'}</p>
+                      </div>
+                      <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      <main className="max-w-7xl mx-auto px-4 py-12">
+        {/* Welcome Section */}
+        <div className="mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col md:flex-row md:items-end justify-between gap-8"
+          >
+            <div className="relative">
+              <div className="absolute -top-10 -left-10 w-40 h-40 rounded-full blur-3xl pointer-events-none opacity-20" 
+                   style={{ backgroundColor: uiTheme === 'chameleon' ? chameleonColor : (uiTheme === 'golden' ? '#f42a41' : '#6366f1') }} />
+              <h1 className={cn("text-4xl md:text-6xl font-black tracking-tight mb-4", 
+                uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : (uiTheme === 'golden' ? "text-emerald-200" : "text-white")))}
+                style={uiTheme === 'chameleon' ? { color: chameleonColor } : {}}>
+                {welcomeMessage}
+              </h1>
+              <div className="flex items-center gap-3">
+                <div className={cn("h-1 w-12 rounded-full", (uiTheme === 'golden' || uiTheme === 'chameleon') ? "bg-bd-red" : "bg-indigo-600")} 
+                     style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor } : {}} />
+                <p className={cn("text-lg font-bold", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-300" : "text-white"))}
+                   style={uiTheme === 'chameleon' ? { color: chameleonColor, opacity: 0.8 } : {}}>
+                  {t.dashboard.workspaceTitle}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              {isAuthorized && (
+                <div className={cn(
+                  "px-6 py-3 rounded-2xl border flex items-center gap-3 shadow-sm",
+                  uiTheme === 'light' ? "bg-white border-slate-200" : (uiTheme === 'golden' ? "bg-emerald-900 border-emerald-500/30" : "bg-slate-900/50 border-slate-800")
+                )}>
+                  <ShieldCheck size={20} className={uiTheme === 'golden' ? "text-bd-red" : "text-indigo-500"} />
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-[10px] font-bold uppercase tracking-widest", uiTheme === 'light' ? "text-slate-400" : (uiTheme === 'golden' ? "text-emerald-100" : "text-slate-400"))}>Your Key:</span>
+                      <span className={cn("text-xs font-bold uppercase tracking-widest", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-300" : "text-slate-300"))}>{activeKey}</span>
+                    </div>
+                    <p className={cn("text-[10px] font-black mt-0.5 uppercase tracking-tighter animate-bounce", uiTheme === 'golden' ? "text-bd-red" : "text-[#f42a41]")}>
+                      keep it secret and note it for next use
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-4">
+                <div className={cn(
+                  "p-4 rounded-2xl border flex flex-col min-w-[120px] shadow-sm transition-all hover:scale-105",
+                  uiTheme === 'light' ? "bg-white border-slate-200" : (uiTheme === 'golden' ? "bg-emerald-950/40 border-emerald-500/20 shadow-[0_0_15px_rgba(0,103,71,0.2)]" : "bg-slate-900 border-slate-800")
+                )}>
+                  <p className={cn("text-[10px] font-black uppercase tracking-widest mb-1", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-300" : "text-emerald-400"))}>{t.dashboard.activeTools}</p>
+                  <p className={cn("text-3xl font-black", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'golden' ? "text-emerald-100 animate-pulse" : "text-white"))}>
+                    {tools.length + pdfSubTools.length - 1}
+                  </p>
+                </div>
+
+                {isAuthorized && (
+                  <div className={cn(
+                    "p-4 rounded-2xl border flex flex-col min-w-[120px] shadow-sm transition-all hover:scale-105",
+                    uiTheme === 'light' ? "bg-white border-slate-200" : (uiTheme === 'golden' ? "bg-emerald-950/40 border-emerald-500/20 shadow-[0_0_15px_rgba(0,103,71,0.2)]" : "bg-slate-900 border-slate-800")
+                  )}>
+                    <p className={cn("text-[10px] font-black uppercase tracking-widest mb-1", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-300" : "text-emerald-400"))}>
+                      {isFreeAccess ? t.dashboard.trial : t.dashboard.coinUsage}
+                    </p>
+                    <p className={cn("text-3xl font-black", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'golden' ? "text-emerald-100 animate-pulse" : "text-white"))}>
+                      {isFreeAccess ? (coins > 0 ? "YES" : "NO") : `${coins.toFixed(1)}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Tools Section */}
+        {activeTab === 'tools' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tools.map((tool, index) => (
+              <motion.div
+                key={`tool-card-${tool.id}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                onClick={() => {
+                  if (tool.id === 'pdfGroup') {
+                    setShowPdfMenu(true);
+                  } else {
+                    onSelectTool(tool.id as any, tool.cost || 0);
+                  }
+                }}
+                className={cn(
+                  "group relative cursor-pointer p-8 standard-card flex flex-col justify-between overflow-hidden",
+                  uiTheme === 'light' ? "hover:border-indigo-200" : 
+                  uiTheme === 'dark' ? "bg-slate-900 hover:border-slate-700" :
+                  "bg-[#005a3e] border-[#007a55] hover:border-emerald-300/30"
+                )}
+              >
+                <div>
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3",
+                    uiTheme === 'golden' ? "bg-amber-500/10 text-emerald-400" : (uiTheme === 'chameleon' ? "bg-white/10" : "bg-indigo-50 text-indigo-600")
+                  )}
+                  style={uiTheme === 'chameleon' ? { color: chameleonColor } : {}}>
+                    {React.cloneElement(tool.icon as React.ReactElement, { 
+                      size: 28,
+                      className: uiTheme === 'golden' ? "text-emerald-400" : (uiTheme === 'chameleon' ? "" : "text-indigo-600"),
+                      style: uiTheme === 'chameleon' ? { color: chameleonColor } : {}
+                    })}
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className={cn("text-xl font-bold tracking-tight", 
+                      uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-50"))}>
+                      {tool.name}
+                      {tool.id === 'cv' && <Sparkles size={16} className="inline ml-2 text-pink-500" />}
+                    </h3>
+                    <p className={cn("text-sm font-medium leading-relaxed", 
+                      uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-50/80" : "text-slate-400"))}>
+                      {tool.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {tool.cost > 0 ? (
+                      <div className={cn("px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5", 
+                        uiTheme === 'light' ? "bg-slate-100 text-slate-700" : (uiTheme === 'golden' ? "bg-emerald-950 border border-emerald-800 text-emerald-100" : "bg-slate-800 text-slate-300"))}>
+                        <CoinsIcon size={14} className="text-amber-500" />
+                        <span>{tool.cost}</span>
+                      </div>
+                    ) : (
+                      <div className={cn("px-3 py-1.5 rounded-lg font-bold text-xs uppercase tracking-wider",
+                        uiTheme === 'golden' ? "bg-bd-red text-white" : "bg-emerald-50 text-emerald-600")}>
+                        Free
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0",
+                    uiTheme === 'golden' ? "bg-amber-600 text-white" : (uiTheme === 'chameleon' ? "" : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20")
+                  )}
+                  style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor, color: 'white' } : {}}>
+                    <ChevronRight size={20} />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-12">
+            <div className="text-center max-w-2xl mx-auto">
+              <h2 className={cn("text-3xl font-black mb-4", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-100"))}>
+                {t.pricing.title}
+              </h2>
+              <p className={cn("font-medium", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-100/70" : "text-slate-400"))}>
+                {t.pricing.subtitle}
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
+              {[
+                { coins: 20, price: 20, label: 'Starter', color: 'bg-indigo-50 border-indigo-100', text: 'text-indigo-600' },
+                { coins: 100, price: 70, label: 'Popular', popular: true, color: 'bg-white border-slate-200', text: 'text-slate-900' },
+                { coins: 200, price: 150, label: 'Pro', color: 'bg-white border-slate-200', text: 'text-slate-900' },
+                { coins: 500, price: 300, label: 'Business', color: 'bg-white border-slate-200', text: 'text-slate-900' },
+                { coins: 1000, price: 500, label: 'Enterprise', color: 'bg-white border-slate-200', text: 'text-slate-900' },
+                { coins: 'Unlimited', price: 10000, label: 'Lifetime', lifetime: true, color: 'bg-amber-50 border-amber-100', text: 'text-amber-600' }
+              ].map((plan, i) => (
+                <motion.div
+                  key={plan.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className={cn(
+                    "relative p-8 rounded-3xl border flex flex-col transition-all hover:shadow-xl",
+                    uiTheme === 'light' ? plan.color : 
+                    uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : 
+                    "bg-emerald-900/40 border-emerald-500/20",
+                    plan.popular && "ring-2 ring-indigo-600 ring-offset-4 dark:ring-offset-slate-950"
+                  )}
+                >
+                  {plan.popular && (
+                    <div className={cn("absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full font-bold uppercase tracking-widest text-[10px] shadow-lg", uiTheme === 'golden' ? "bg-amber-600 text-white" : "bg-indigo-600 text-white")}>
+                      {t.pricing.popular}
+                    </div>
+                  )}
+                  <div className="mb-8">
+                    <p className={cn("text-xs font-bold uppercase tracking-widest mb-2 opacity-60", uiTheme === 'light' ? "text-slate-500" : (uiTheme === 'golden' ? "text-emerald-300" : "text-white"))}>{plan.label}</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className={cn("text-4xl font-black", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'golden' ? "text-emerald-100" : "text-white"))}>{plan.price}</span>
+                      <span className={cn("text-sm font-bold uppercase", uiTheme === 'light' ? "text-slate-400" : (uiTheme === 'golden' ? "text-emerald-400" : "text-slate-400"))}>TK</span>
+                    </div>
+                  </div>
+                  <div className="space-y-4 mb-8 flex-1">
+                    {[
+                      { icon: <CheckCircle2 size={16} />, text: `${plan.coins} ${t.pricing.features.coins}` },
+                      { icon: <CheckCircle2 size={16} />, text: t.pricing.features.access },
+                      { icon: <CheckCircle2 size={16} />, text: t.pricing.features.expiry }
+                    ].map((feature, fIdx) => (
+                      <div key={`plan-${plan.label}-feature-${fIdx}`} className="flex items-center gap-3">
+                        <div className={cn("text-emerald-500", uiTheme === 'golden' && "text-bd-red")}>{feature.icon}</div>
+                        <p className={cn("text-sm font-medium", uiTheme === 'light' ? "text-slate-600" : (uiTheme === 'golden' ? "text-emerald-100" : "text-slate-300"))}>{feature.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={() => setShowPaymentForm(true)}
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-3 transition-all active:scale-95",
+                      plan.popular 
+                        ? (uiTheme === 'golden' ? "bg-amber-600 text-white shadow-lg shadow-amber-900/20" : (uiTheme === 'chameleon' ? "" : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20")) 
+                        : (uiTheme === 'light' ? "bg-white border border-slate-200 text-slate-900 hover:bg-slate-50" : "bg-slate-800 text-white hover:bg-slate-700")
+                    )}
+                    style={plan.popular && uiTheme === 'chameleon' ? { backgroundColor: chameleonColor, color: 'white', boxShadow: `0 10px 15px -3px ${chameleonColor}40` } : {}}
+                  >
+                    {t.pricing.addCoins}
+                    <CreditCard size={18} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Payment Form Modal */}
+      <AnimatePresence>
+        {showPaymentForm && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={cn(
+                "max-w-2xl w-full rounded-[2.5rem] shadow-2xl border p-8 md:p-12 relative my-8",
+                uiTheme === 'light' ? "bg-white border-slate-100" : (uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-emerald-950 border-emerald-500/30")
+              )}
+            >
+              <button 
+                onClick={() => setShowPaymentForm(false)}
+                className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+
+              <div className="flex items-center gap-4 mb-8">
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white", uiTheme === 'golden' ? "bg-amber-600" : "bg-indigo-600")}>
+                  <CreditCard size={24} />
+                </div>
+                <div>
+                  <h2 className={cn("text-2xl font-black", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-400"))}>{t.pricing.payment.title}</h2>
+                  <p className={cn("text-sm font-medium tracking-wide", uiTheme === 'golden' ? "text-emerald-100/60" : "text-slate-500")}>{t.pricing.payment.subtitle}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div className="space-y-6">
+                  <div className={cn("p-6 rounded-3xl border", uiTheme === 'golden' ? "bg-emerald-900/40 border-emerald-800" : "bg-indigo-50 border-indigo-100")}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold", uiTheme === 'golden' ? "bg-amber-600" : "bg-indigo-500 shadow-lg shadow-indigo-200")}>1</div>
+                      <p className={cn("text-sm font-bold uppercase tracking-widest", uiTheme === 'golden' ? "text-emerald-400" : "text-indigo-900")}>{t.pricing.payment.step1}</p>
+                    </div>
+                    <ul className={cn("space-y-3 text-sm font-medium", uiTheme === 'golden' ? "text-emerald-100" : "text-indigo-800")}>
+                      {t.pricing.payment.steps.map((step, idx) => (
+                        <li key={`payment-step-${idx}`} className="flex items-start gap-2">
+                          <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5", uiTheme === 'golden' ? "bg-bd-red" : "bg-indigo-400")} />
+                          {step === "Enter Merchant No: 01868257470" ? (
+                            <>Enter Merchant No: <span className="font-bold underline decoration-indigo-400">01868257470</span></>
+                          ) : (
+                            language === 'bn' && step.includes("01868257470") ? (
+                             <>মার্চেন্ট নম্বর দিন: <span className="font-bold underline decoration-indigo-400">01868257470</span></>
+                            ) : step
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    try {
+                      const finalKey = (paymentData.desiredKey || activeKey || 'Guest').trim().toUpperCase();
+                      await addDoc(collection(db, 'paymentRequests'), {
+                        ...paymentData,
+                        userKey: finalKey,
+                        userName: paymentData.fullName || userName || 'Guest',
+                        status: 'pending',
+                        createdAt: Timestamp.now()
+                      });
+                      setShowPaymentForm(false);
+                      setShowPaymentSuccess(true);
+                      setPaymentData({ amount: '', transactionId: '', fullName: '', mobileNo: '', desiredKey: activeKey || '', comments: '' });
+                    } catch (err) {
+                      console.error(err);
+                    } finally {
+                      setIsSubmitting(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>Amount (TK)</label>
+                      <input 
+                        required
+                        type="number"
+                        placeholder="e.g. 70"
+                        value={paymentData.amount}
+                        onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                        className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold", 
+                          uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                          (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>Mobile No</label>
+                      <input 
+                        required
+                        type="text"
+                        placeholder="017XXXXXXXX"
+                        value={paymentData.mobileNo}
+                        onChange={(e) => setPaymentData({...paymentData, mobileNo: e.target.value})}
+                        className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold", 
+                          uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                          (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>{t.pricing.payment.form.trxId}</label>
+                    <input 
+                      required
+                      type="text"
+                      placeholder="Enter bKash TrxID"
+                      value={paymentData.transactionId}
+                      onChange={(e) => setPaymentData({...paymentData, transactionId: e.target.value})}
+                      className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold", 
+                        uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                        (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>{t.pricing.payment.form.name}</label>
+                    <input 
+                      required
+                      type="text"
+                      placeholder="Your Name"
+                      value={paymentData.fullName}
+                      onChange={(e) => setPaymentData({...paymentData, fullName: e.target.value})}
+                      className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold", 
+                        uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                        (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>
+                        Recharge Security Key / Account Key
+                      </label>
+                      {activeKey && (
+                        <span className="text-[10px] font-bold text-emerald-500">Current Key: {activeKey}</span>
+                      )}
+                    </div>
+                    <input 
+                      type="text"
+                      placeholder="e.g. MAKSUD-VIP-1234 or leave blank if using active key"
+                      value={paymentData.desiredKey}
+                      onChange={(e) => setPaymentData({...paymentData, desiredKey: e.target.value})}
+                      className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold uppercase", 
+                        uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                        (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                    />
+                    <p className="text-[10px] text-slate-400 ml-1">Coins will be credited to this security key when payment is confirmed.</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className={cn("text-[10px] font-black uppercase tracking-widest ml-1", uiTheme === 'golden' ? "text-emerald-300" : "text-slate-400")}>{t.pricing.payment.form.comments}</label>
+                    <textarea 
+                      placeholder="Any message..."
+                      value={paymentData.comments}
+                      onChange={(e) => setPaymentData({...paymentData, comments: e.target.value})}
+                      className={cn("w-full px-4 py-3 border rounded-xl outline-none transition-all text-sm font-bold h-20 resize-none", 
+                        uiTheme === 'light' ? "bg-slate-50 border-slate-200 focus:ring-2 focus:ring-indigo-500" : 
+                        (uiTheme === 'golden' ? "bg-emerald-900/50 border-emerald-700 focus:ring-2 focus:ring-amber-500 text-white" : "bg-slate-800 border-slate-700 focus:ring-2 focus:ring-amber-500 text-white"))}
+                    />
+                  </div>
+                  <button 
+                    disabled={isSubmitting}
+                    type="submit"
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2",
+                      uiTheme === 'golden' ? "bg-amber-600 hover:bg-amber-700 text-white shadow-xl shadow-amber-950/20" : 
+                      (uiTheme === 'chameleon' ? "text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-200")
+                    )}
+                    style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor, boxShadow: `0 15px 25px -5px ${chameleonColor}40` } : {}}
+                  >
+                    {isSubmitting ? t.pricing.payment.form.submitting : t.pricing.payment.form.submit}
+                    <Send size={18} />
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showPaymentSuccess && (
+          <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                "max-w-md w-full rounded-[2.5rem] p-10 text-center shadow-2xl border",
+                uiTheme === 'light' ? "bg-white border-slate-100" : (uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-[#1a1a1a] border-amber-900/30")
+              )}
+            >
+              <div className={cn("w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6", uiTheme === 'golden' ? "bg-emerald-900/50 text-emerald-400" : "bg-emerald-100 text-emerald-600")}>
+                <CheckCircle2 size={40} />
+              </div>
+              <h2 className={cn("text-2xl font-black mb-4", uiTheme === 'light' ? "text-slate-900" : "text-white")}>
+                {language === 'en' ? 'Successfully Requested!' : 'সফলভাবে অনুরোধ করা হয়েছে!'}
+              </h2>
+              <p className={cn("font-medium mb-8", uiTheme === 'light' ? "text-slate-500" : "text-slate-400")}>
+                {language === 'en' 
+                  ? 'Please wait for confirmation message. Our team will verify your payments and will inform you by SMS.' 
+                  : 'অনুগ্রহ করে কনফার্মেশন মেসেজের জন্য অপেক্ষা করুন। আমাদের টিম আপনার পেমেন্ট যাচাই করবে এবং এসএমএসের মাধ্যমে জানাবে।'}
+              </p>
+              <button 
+                onClick={() => setShowPaymentSuccess(false)}
+                className={cn(
+                  "w-full py-4 rounded-2xl font-black text-sm transition-all active:scale-95",
+                  uiTheme === 'golden' ? "bg-amber-600 text-white shadow-lg shadow-amber-900/20" : "bg-slate-900 text-white hover:bg-slate-800"
+                )}
+              >
+                {language === 'en' ? 'Got it' : 'বুঝেছি'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+
+        {showPdfMenu && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className={cn(
+                "max-w-4xl w-full rounded-[3rem] shadow-2xl border p-8 md:p-12 relative overflow-hidden",
+                uiTheme === 'light' ? "bg-white border-slate-100" : (uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-[#1a1a1a] border-amber-900/30")
+              )}
+            >
+              <button 
+                onClick={() => setShowPdfMenu(false)}
+                className="absolute top-8 right-8 p-3 text-slate-400 hover:text-slate-600 transition-colors z-10"
+              >
+                <X size={28} />
+              </button>
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg", uiTheme === 'golden' ? "bg-amber-600" : (uiTheme === 'chameleon' ? "" : "bg-red-600"))}
+                       style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor } : {}}>
+                    <Files size={28} />
+                  </div>
+                  <div>
+                    <h2 className={cn("text-3xl font-black", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-400"))}>
+                      {t.dashboard.tools.pdfGroup}
+                    </h2>
+                    <p className="text-sm font-medium text-slate-500 tracking-wide uppercase mt-1">Professional PDF Suite</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pdfSubTools.map((tool) => (
+                    <button
+                      key={`pdf-tool-choice-${tool.id}`}
+                      onClick={() => {
+                        onSelectTool(tool.id as any, 0.25);
+                        setShowPdfMenu(false);
+                      }}
+                      className={cn(
+                        "flex items-start gap-4 p-6 rounded-[2rem] border transition-all text-left group active:scale-95",
+                        uiTheme === 'light' ? "bg-slate-50 border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-xl hover:shadow-slate-100" : 
+                        "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600"
+                      )}
+                    >
+                      <div className={cn("mt-1 transition-transform group-hover:scale-110", tool.color)}>
+                        {tool.icon}
+                      </div>
+                      <div>
+                        <h4 className={cn("font-black mb-1", uiTheme === 'light' ? "text-slate-900" : "text-white")}>{tool.name}</h4>
+                        <p className="text-xs text-slate-500 font-medium leading-tight">{tool.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Background Decoration */}
+              <div className={cn(
+                "absolute -right-20 -bottom-20 w-64 h-64 rounded-full blur-3xl opacity-20",
+                uiTheme === 'golden' ? "bg-amber-600" : (uiTheme === 'chameleon' ? "" : "bg-red-600")
+              )} 
+              style={uiTheme === 'chameleon' ? { backgroundColor: chameleonColor } : {}} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <footer className={cn(
+        "border-t py-16 mt-24 transition-colors duration-300",
+        uiTheme === 'light' ? "bg-white border-slate-200" : (uiTheme === 'dark' ? "bg-slate-900 border-slate-800" : "bg-[#121212] border-amber-900/30")
+      )}>
+          <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-6">
+                <Logo className="w-10 h-10" />
+                <h2 className={cn("text-xl font-bold tracking-tight", uiTheme === 'light' ? "text-slate-900" : (uiTheme === 'dark' ? "text-white" : "text-emerald-300"))}>MAKSUD COMPUTERS</h2>
+              </div>
+              <p className={cn("font-medium max-w-md mb-8 mx-auto md:mx-0", uiTheme === 'light' ? "text-slate-500" : "text-slate-400")}>
+                Professional digital services and tools since 2020. Providing the best-in-class solutions for your daily digital needs.
+              </p>
+            <div className="flex items-center gap-4">
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer", 
+                uiTheme === 'light' ? "bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600" : "bg-slate-800 text-slate-500 hover:bg-amber-600 hover:text-white")}>
+                <Facebook size={20} />
+              </div>
+            </div>
+          </div>
+          <div>
+            <h4 className={cn("text-sm font-black uppercase tracking-widest mb-6", uiTheme === 'golden' ? "text-emerald-400" : (uiTheme === 'dark' ? "text-slate-300" : "text-slate-900"))}>
+              {language === 'en' ? 'Quick Links' : 'দ্রুত লিঙ্ক'}
+            </h4>
+            <ul className="space-y-4">
+              <li><button onClick={() => onSelectTool('cv', 0)} className={cn("text-sm font-bold transition-colors", uiTheme === 'light' ? "text-slate-500 hover:text-indigo-600" : "text-slate-400 hover:text-white")}>{t.dashboard.tools.cv}</button></li>
+              <li><button onClick={() => onSelectTool('editor', 5)} className={cn("text-sm font-bold transition-colors", uiTheme === 'light' ? "text-slate-500 hover:text-indigo-600" : "text-slate-400 hover:text-white")}>{t.dashboard.tools.photoEditor}</button></li>
+              <li><button onClick={() => onSelectTool('pdf', 5)} className={cn("text-sm font-bold transition-colors", uiTheme === 'light' ? "text-slate-500 hover:text-indigo-600" : "text-slate-400 hover:text-white")}>{t.dashboard.tools.pdfEditor}</button></li>
+              <li><button onClick={() => onSelectTool('converter', 0)} className={cn("text-sm font-bold transition-colors", uiTheme === 'light' ? "text-slate-500 hover:text-indigo-600" : "text-slate-400 hover:text-white")}>{t.dashboard.tools.converter}</button></li>
+            </ul>
+          </div>
+          <div>
+            <button 
+              onClick={() => onSelectTool('about', 0)}
+              className={cn("text-sm font-black uppercase tracking-widest mb-6 block text-left w-full hover:underline transition-all", uiTheme === 'golden' ? "text-emerald-400" : (uiTheme === 'dark' ? "text-slate-300" : "text-slate-900"))}
+            >
+              {language === 'en' ? 'Contact' : 'যোগাযোগ'}
+            </button>
+            <ul className="space-y-4">
+              <li className={cn("text-sm font-bold", uiTheme === 'light' ? "text-slate-500" : "text-slate-400")}>{language === 'en' ? "Jamalpur, Bangladesh" : "জামালপুর, বাংলাদেশ"}</li>
+              <li className={cn("text-sm font-bold", uiTheme === 'light' ? "text-slate-500" : "text-slate-400")}>01868257470</li>
+              <li className={cn("text-sm font-bold", uiTheme === 'light' ? "text-slate-500" : "text-slate-400")}>maksudjr2020@gmail.com</li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 mt-16 pt-8 border-t border-slate-100/10 text-center">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">
+            © 2026 MAKSUD COMPUTERS. {language === 'en' ? 'ALL RIGHTS RESERVED.' : 'সর্বস্বত্ব সংরক্ষিত।'}
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};

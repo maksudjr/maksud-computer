@@ -1,0 +1,6 @@
+{
+  "name": "Maksud Computer - CV Builder & AI Tools",
+  "description": "Professional CV Builder with Bengali Flag style UI, Intelligent AI chat, PDF tools, and advanced image editing. Optimized for Maksud Computer services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

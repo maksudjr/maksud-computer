@@ -1,0 +1,212 @@
+export type SectionId = 
+  | 'careerObjective' 
+  | 'personalInfo' 
+  | 'education' 
+  | 'skills' 
+  | 'workExperience' 
+  | 'hobbies' 
+  | 'declaration' 
+  | 'references' 
+  | 'custom'
+  | 'computerSkills'
+  | 'languageProficiency'
+  | 'selfAssessment'
+  | 'trainings';
+
+export interface Education {
+  id: string;
+  examName: string;
+  passingYear: string;
+  board: string;
+  gpa: string;
+  gpaType: string;
+  instituteName: string;
+  subject: string;
+}
+
+export interface WorkExperience {
+  id: string;
+  companyName: string;
+  position: string;
+  duration: string;
+  description: string;
+}
+
+export interface CustomField {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface ComputerSkill {
+  id: string;
+  hasTraining: boolean;
+  instituteName: string;
+  duration: string;
+  skills: string[];
+}
+
+export interface Training {
+  id: string;
+  instituteName: string;
+  subject: string;
+  duration: string;
+  description: string;
+}
+
+export type TemplateId = 
+  | 'vibrant'
+  | 'classic' 
+  | 'vibrant-prime'
+  | 'classic-prestige'
+  | 'smart-executive'
+  | 'modern' 
+  | 'smart-classic' 
+  | 'smart-modern'
+  | 'modern-minimalist' 
+  | 'executive-elite';
+
+export interface Reference {
+  id: string;
+  name: string;
+  position: string;
+  organization: string;
+  phone: string;
+}
+
+export interface CVData {
+  id: string;
+  lastUpdated: number;
+  theme: {
+    primaryColor: string;
+    fontStyle: string;
+    darkMode: boolean;
+    pageCount: number;
+    templateId: TemplateId;
+    fontSize: number;
+    lineSpacing: number;
+    pageMargin: number;
+    editableMode: boolean;
+    showBorder: boolean;
+    headerStyle?: 'default' | 'black' | 'primary';
+  };
+  selectedSections: SectionId[];
+  personalInfo: {
+    name: string;
+    fathersName: string;
+    mothersName: string;
+    dob: string;
+    nationality: string;
+    religion: string;
+    maritalStatus: string;
+    gender: string;
+    phone: string;
+    email: string;
+    presentVillage: string;
+    presentPostOffice: string;
+    presentUpazila: string;
+    presentDistrict: string;
+    permanentVillage: string;
+    permanentPostOffice: string;
+    permanentUpazila: string;
+    permanentDistrict: string;
+    photo: string;
+    signature: string;
+    nid: string;
+    birthRegNo: string;
+    bloodGroup: string;
+    heightFeet: string;
+    heightInches: string;
+    weight: string;
+  };
+  careerObjective: string;
+  education: Education[];
+  skills: string[];
+  computerSkills: ComputerSkill[];
+  workExperience: WorkExperience[];
+  hobbies: string[];
+  languageProficiency: string[];
+  selfAssessment: string[];
+  trainings: Training[];
+  declaration: string;
+  references: Reference[];
+  customSection: {
+    title: string;
+    fields: CustomField[];
+  };
+}
+
+export const DEFAULT_CV_DATA: CVData = {
+  id: 'default',
+  lastUpdated: Date.now(),
+  theme: {
+    primaryColor: '#4f46e5', // Default indigo
+    fontStyle: 'font-sans',
+    darkMode: false,
+    pageCount: 1,
+    templateId: 'vibrant',
+    fontSize: 11,
+    lineSpacing: 1.5,
+    pageMargin: 19.05,
+    editableMode: false,
+    showBorder: true,
+    headerStyle: 'default',
+  },
+  selectedSections: [
+    'careerObjective',
+    'personalInfo',
+    'education',
+    'trainings',
+    'computerSkills',
+    'workExperience',
+    'languageProficiency',
+    'selfAssessment',
+    'hobbies',
+    'declaration'
+  ],
+  personalInfo: {
+    name: '',
+    fathersName: '',
+    mothersName: '',
+    dob: '',
+    nationality: 'Bangladeshi (By Birth)',
+    religion: 'Islam',
+    maritalStatus: 'Unmarried',
+    gender: 'Male',
+    phone: '',
+    email: '',
+    presentVillage: '',
+    presentPostOffice: '',
+    presentUpazila: '',
+    presentDistrict: '',
+    permanentVillage: '',
+    permanentPostOffice: '',
+    permanentUpazila: '',
+    permanentDistrict: '',
+    photo: '',
+    signature: '',
+    nid: '',
+    birthRegNo: '',
+    bloodGroup: '',
+    heightFeet: '',
+    heightInches: '',
+    weight: '',
+  },
+  careerObjective: 'To build up myself as a challenging and responsible person to utilize my educational and other experiences, to show my creativity and integrity, at the same time to full the desire to work in a competitive, dynamic and disciplined job environment to enrich professional skills, competency and level of expertise knowledge.',
+  education: [],
+  skills: [],
+  computerSkills: [
+    { id: '1', hasTraining: true, instituteName: 'Maksud Computer Institute', duration: '6 Months', skills: ['MS Office', 'Photoshop', 'Internet Browsing', 'Basic Computer Applications'] }
+  ],
+  workExperience: [],
+  hobbies: [],
+  languageProficiency: [],
+  selfAssessment: [],
+  trainings: [],
+  declaration: 'I the undersigned, hereby declare that I will the responsible for any wrong Information Provided here and any misstatement described herein may lead to my Disqualification for dismissal, if employed.',
+  references: [],
+  customSection: {
+    title: 'Custom Section',
+    fields: [],
+  },
+};
